@@ -1,0 +1,9 @@
+**/venv/
+**/.venv/
+**/__pycache__/
+**/.env
+**/models/
+**/DeOldify/
+**/Real-ESRGAN/
+**/static/uploads/*
+**/static/results/*

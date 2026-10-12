@@ -1,0 +1,37 @@
+# Python environments
+myenv/
+fresh_venv/
+venv/
+env311/
+
+# Other people's projects (cloned separately, see README)
+DeOldify/
+Real-ESRGAN/
+
+# Model weights and downloaded model files
+models/
+gfpgan/
+restoremodelcheckpoints/
+*.pth
+*.pt
+*.h5
+*.ckpt
+
+# Uploaded and generated images
+static/uploads/
+static/results/
+result_images/
+dataset/
+datasets/
+
+# Editor, notebook and cache files
+.vscode/
+.qodo/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+mytorch_extensions/
+
+# Local backups and experiments
+app_old.py
+Untitled.ipynb

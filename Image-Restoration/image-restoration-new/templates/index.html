@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Enhancer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="hero-section">
+    <h1>Image Enhancer</h1>
+    <p>Enhance your images with our AI-driven colorization and restoration tools.</p>
+  </div>
+
+  <div class="main-content">
+    
+    <div class="left-column">
+      <h2>Upload Images</h2>
+      <div class="dashed-box" id="upload-box">
+        <form id="upload-form" enctype="multipart/form-data">
+          <div class="upload-instructions-box">
+            <span class="upload-icon">&#8682;</span>
+            <p>Upload images</p>
+            <p class="dim-text">Drag & drop or click to select files</p>
+            <input type="file" id="file-input" name="files" accept="image/*" class="file-input" multiple required>
+          </div>
+          <select id="process-type" name="process_type" class="select-process">
+            <option value="colorize">Colorize</option>
+            <option value="restore">Restore</option>
+            <option value="colorize+restore">Colorize + Restore</option>
+          </select>
+          <button type="button" id="generate-btn" class="generate-btn">Generate</button>
+          <button type="button" id="clear-btn" class="generate-btn clear-btn">Clear</button>
+        </form>
+      </div>
+      <h3>Uploaded Images</h3>
+      <div class="image-gallery" id="uploaded-gallery"></div>
+    </div>
+
+   
+    <div class="right-column">
+      <h2>Result Images</h2>
+      <div class="dashed-box" id="result-box">
+        
+        <div id="loading-indicator" class="loading-indicator" style="display: none;">
+          Processing, please wait...
+        </div>
+        <div class="slider-container" id="result-slider">
+          <div class="slider"></div>
+          <button class="slider-btn prev-btn" id="result-prev-btn">&#10094;</button>
+          <button class="slider-btn next-btn" id="result-next-btn">&#10095;</button>
+        </div>
+      </div>
+      
+      <div id="result-actions" class="result-actions">
+        <button type="button" id="download-btn" class="download-btn">Download</button>
+        <button type="button" id="copy-btn" class="copy-btn">Copy Image</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const uploadedGallery = document.getElementById('uploaded-gallery');
+    const generateBtn = document.getElementById('generate-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const resultSliderContainer = document.getElementById('result-slider').querySelector('.slider');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const downloadBtn = document.getElementById('download-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const prevBtn = document.getElementById('result-prev-btn');
+    const nextBtn = document.getElementById('result-next-btn');
+
+    // Accumulate selected files
+    let selectedFiles = [];
+    let processedPaths = []; // Array of objects {path, message}
+    let currentSlideIndex = 0;
+  
+    fileInput.addEventListener('change', (e) => {
+      const newFiles = Array.from(e.target.files);
+      selectedFiles = selectedFiles.concat(newFiles);
+      updateUploadedGallery();
+      fileInput.value = "";
+    });
+  
+    function updateUploadedGallery() {
+      uploadedGallery.innerHTML = '';
+      selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const imgUrl = evt.target.result;
+          const div = document.createElement('div');
+          div.className = 'image-item';
+          div.innerHTML = `
+            <img src="${imgUrl}" alt="Uploaded Image">
+            <span class="remove-btn" data-index="${index}">&times;</span>
+          `;
+          div.querySelector('.remove-btn').addEventListener('click', (e) => {
+            const removeIndex = parseInt(e.target.getAttribute('data-index'));
+            selectedFiles.splice(removeIndex, 1);
+            updateUploadedGallery();
+          });
+          uploadedGallery.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  
+    generateBtn.addEventListener('click', async () => {
+      if (selectedFiles.length === 0) {
+        alert("Please select image(s) first.");
+        return;
+      }
+      loadingIndicator.style.display = 'block';
+      const formData = new FormData();
+      selectedFiles.forEach(file => formData.append('files', file));
+      const processType = document.getElementById('process-type').value;
+      formData.append('process_type', processType);
+      
+      try {
+        const response = await fetch('/', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        processedPaths = data.result_images;
+        loadingIndicator.style.display = 'none';
+        populateResultSlider();
+      } catch (err) {
+        console.error(err);
+        loadingIndicator.style.display = 'none';
+        alert("Error processing images.");
+      }
+    });
+  
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('upload-form').reset();
+      selectedFiles = [];
+      processedPaths = [];
+      uploadedGallery.innerHTML = '';
+      resultSliderContainer.innerHTML = '';
+      currentSlideIndex = 0;
+      downloadBtn.onclick = null;
+      copyBtn.onclick = null;
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+    });
+  
+    function populateResultSlider() {
+      resultSliderContainer.innerHTML = '';
+      processedPaths.forEach(item => {
+        const slideDiv = document.createElement('div');
+        slideDiv.className = 'slide';
+        slideDiv.innerHTML = `
+          <img src="static/${item.path}" alt="Result Image">
+          <div class="overlay">${item.message}</div>
+        `;
+        resultSliderContainer.appendChild(slideDiv);
+      });
+      currentSlideIndex = 0;
+      showSlide(currentSlideIndex);
+      updateActionButtons();
+    }
+  
+    function showSlide(index) {
+      const slides = resultSliderContainer.getElementsByClassName('slide');
+      if (slides.length === 0) return;
+      for (let i = 0; i < slides.length; i++) {
+        slides[i].style.display = 'none';
+      }
+      slides[index].style.display = 'block';
+      updateActionButtons();
+    }
+  
+    prevBtn.addEventListener('click', () => {
+      const slides = resultSliderContainer.getElementsByClassName('slide');
+      if (slides.length < 2) return;
+      currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+      showSlide(currentSlideIndex);
+    });
+    nextBtn.addEventListener('click', () => {
+      const slides = resultSliderContainer.getElementsByClassName('slide');
+      if (slides.length < 2) return;
+      currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+      showSlide(currentSlideIndex);
+    });
+  
+    function updateActionButtons() {
+      const slides = resultSliderContainer.getElementsByClassName('slide');
+      if (slides.length === 0) {
+        downloadBtn.style.display = 'none';
+        copyBtn.style.display = 'none';
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+      } else {
+        downloadBtn.style.display = 'inline-block';
+        copyBtn.style.display = 'inline-block';
+        if (slides.length < 2) {
+          prevBtn.style.display = 'none';
+          nextBtn.style.display = 'none';
+        } else {
+          prevBtn.style.display = 'inline-block';
+          nextBtn.style.display = 'inline-block';
+        }
+        const currentSlide = slides[currentSlideIndex];
+        const imgElem = currentSlide.querySelector('img');
+        const imgUrl = imgElem.getAttribute('src');
+        // Set the copy button function as before
+        copyBtn.onclick = () => copyImageToClipboard(imgUrl);
+      }
+    }
+  
+    // Revised download button functionality using client-side JavaScript
+    downloadBtn.onclick = async () => {
+      const slides = resultSliderContainer.getElementsByClassName('slide');
+      const currentSlide = slides[currentSlideIndex];
+      const imgElem = currentSlide ? currentSlide.querySelector('img') : null;
+      if (!imgElem) {
+        console.error("No image found in the current slide.");
+        alert("No image available to download.");
+        return;
+      }
+      const imgUrl = imgElem.getAttribute('src');
+      const filename = imgUrl.split('/').pop();
+  
+      try {
+        const response = await fetch(imgUrl);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.error("Error downloading the image: ", error);
+        alert("Failed to download image.");
+      }
+    };
+  
+  
+  
+  
+    
+    
+    async function copyImageToClipboard(url) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        await img.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(async (blob) => {
+          if (!blob) throw new Error("Canvas is empty");
+          const item = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([item]);
+          alert("Image copied to clipboard!");
+        }, 'image/png');
+      } catch (err) {
+        console.error(err);
+        alert("Failed to copy image.");
+      }
+    }
+  </script>
+</body>
+</html>

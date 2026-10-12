@@ -1,0 +1,47 @@
+# Core ML / Speech
+numpy==1.26.4
+ctranslate2==4.7.1
+faster-whisper==1.2.1
+sentence-transformers
+sentencepiece
+transformers==4.40.0
+tokenizers==0.19.1
+huggingface_hub==0.23.4
+
+# Audio
+sounddevice
+soundfile
+scipy
+noisereduce
+resemblyzer
+librosa
+
+# Vision / OCR
+opencv-python==4.8.1.78
+deepface==0.0.79
+easyocr==1.7.1
+
+# Security
+bcrypt
+scikit-learn
+
+# UI
+PyQt6
+pystray
+Pillow
+
+# Automation
+pyautogui
+pyperclip
+pywinauto
+pyttsx3
+screen-brightness-control
+pywin32
+pycaw
+comtypes
+
+# System
+psutil
+requests
+ollama
+tqdm
